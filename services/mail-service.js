@@ -9,7 +9,7 @@ class MailService {
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASSWORD,
-      }
+      },
     });
   }
   async sendActivationMail(to, link) {
@@ -18,15 +18,14 @@ class MailService {
       to,
       subject: "Test activation account" + process.env.API_URL,
       text: "",
-      html:
-      `
+      html: `
         <div>
           <h1>For activate your test accaount click on link below</h1>
           <a href="${link}">${link}</a>
         </div>
-      `
-    });  
-  };
+      `,
+    });
+  }
 }
 
 module.exports = new MailService();

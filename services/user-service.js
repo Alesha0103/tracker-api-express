@@ -10,24 +10,31 @@ class UserService {
   async registration(email, password) {
     const candidate = await UserModel.findOne({ email });
     if (candidate) {
-      throw ApiError.BadRequest("USER_ALREADY_EXISTED")
+      throw ApiError.BadRequest("USER_ALREADY_EXISTED");
     }
-    const hashPassword = await bcrypt.hash(password, 3)
+    const hashPassword = await bcrypt.hash(password, 3);
     const activationLink = uuid.v4();
 
-    const user = await UserModel.create({ email, password: hashPassword, activationLink});
-    await mailService.sendActivationMail(email, `${process.env.API_URL}/api/activate/${activationLink}`);
+    const user = await UserModel.create({
+      email,
+      password: hashPassword,
+      activationLink,
+    });
+    await mailService.sendActivationMail(
+      email,
+      `${process.env.API_URL}/api/activate/${activationLink}`,
+    );
 
     const userDto = new UserDto(user);
-    const tokens = tokenService.genereteTokens({...userDto});
+    const tokens = tokenService.genereteTokens({ ...userDto });
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
     return {
       ...tokens,
       user: userDto,
-    }
-  };
-  
+    };
+  }
+
   async activate(activationLink) {
     const user = await UserModel.findOne({ activationLink });
     if (!user) {
@@ -35,32 +42,32 @@ class UserService {
     }
     user.isActivated = true;
     await user.save();
-  };
+  }
 
   async login(email, password) {
     const user = await UserModel.findOne({ email });
     if (!user) {
-      throw ApiError.BadRequest("USER_NOT_FOUND")
+      throw ApiError.BadRequest("USER_NOT_FOUND");
     }
     const isPassEquels = await bcrypt.compare(password, user.password);
     if (!isPassEquels) {
       throw ApiError.BadRequest("E_VALIDATION_ERROR");
     }
     const userDto = new UserDto(user);
-    const tokens = tokenService.genereteTokens({...userDto});
+    const tokens = tokenService.genereteTokens({ ...userDto });
 
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
     return {
       ...tokens,
       user: userDto,
-    }
-  };
+    };
+  }
 
   async logout(refreshToken) {
     const token = tokenService.removeToken(refreshToken);
     return token;
-  };
+  }
 
   async refresh(refreshToken) {
     if (!refreshToken) {
@@ -73,15 +80,15 @@ class UserService {
     }
     const user = await UserModel.findById(userData.id);
     const userDto = new UserDto(user);
-    const tokens = tokenService.genereteTokens({...userDto});
+    const tokens = tokenService.genereteTokens({ ...userDto });
 
     await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
     return {
       ...tokens,
       user: userDto,
-    }
-  };
+    };
+  }
 
   async getAllUsers() {
     const users = await UserModel.find();
