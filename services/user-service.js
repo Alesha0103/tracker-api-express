@@ -7,7 +7,7 @@ const UserDto = require("../dtos/user-dto");
 const ApiError = require("../exeptions/api-errors");
 
 class UserService {
-    async registration(email, password) {
+    async registration(email, password, isAdmin) {
         const candidate = await UserModel.findOne({ email });
         if (candidate) {
             throw ApiError.BadRequest("USER_ALREADY_EXISTED");
@@ -19,6 +19,7 @@ class UserService {
             email,
             password: hashPassword,
             activationLink,
+            isAdmin,
         });
         await mailService.sendActivationMail(
             email,
@@ -59,7 +60,6 @@ class UserService {
         await tokenService.saveToken(userDto.id, tokens.refreshToken);
 
         return {
-            ...tokens,
             user: userDto,
         };
     }

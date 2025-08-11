@@ -11,8 +11,8 @@ class UserController {
                     ApiError.BadRequest("E_VALIDATION_ERROR", errors.array())
                 );
             }
-            const { email, password } = req.body;
-            const userData = await userService.registration(email, password);
+            const { email, password, isAdmin } = req.body;
+            const userData = await userService.registration(email, password, isAdmin);
             res.cookie("refreshToken", userData.refreshToken, {
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
@@ -30,6 +30,8 @@ class UserController {
             res.cookie("refreshToken", userData.refreshToken, {
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "none",
             });
             return res.json(userData);
         } catch (err) {
