@@ -33,7 +33,7 @@ class UserController {
                 secure: process.env.NODE_ENV === "production",
                 sameSite: "none",
             });
-            return res.json(userData);
+            return res.json(userData.user);
         } catch (err) {
             next(err);
         }
