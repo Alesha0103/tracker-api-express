@@ -97,6 +97,8 @@ class UserService {
                 id: user.id,
                 email: user.email,
                 isActivated: user.isActivated,
+                trackedHours: 0,
+                project: null,
                 isAdmin: user.isAdmin,
             };
         });
