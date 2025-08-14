@@ -92,7 +92,15 @@ class UserService {
 
     async getAllUsers() {
         const users = await UserModel.find();
-        return users;
+        const updatedUsers = users.map((user) => {
+            return {
+                id: user.id,
+                email: user.email,
+                isActivated: user.isActivated,
+                isAdmin: user.isAdmin,
+            };
+        });
+        return updatedUsers;
     }
 }
 

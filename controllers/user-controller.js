@@ -12,12 +12,16 @@ class UserController {
                 );
             }
             const { email, password, isAdmin } = req.body;
-            const userData = await userService.registration(email, password, isAdmin);
+            const userData = await userService.registration(
+                email,
+                password,
+                isAdmin
+            );
             res.cookie("refreshToken", userData.refreshToken, {
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
             });
-            return res.json(userData);
+            return res.json(userData.user);
         } catch (err) {
             next(err);
         }
@@ -31,9 +35,15 @@ class UserController {
                 maxAge: 30 * 24 * 60 * 60 * 1000,
                 httpOnly: true,
                 secure: process.env.NODE_ENV === "production",
-                sameSite: "none",
+                sameSite: "lax",
             });
-            return res.json(userData.user);
+            res.cookie("userType", userData.user.isAdmin ? "ADMIN" : "USER", {
+                maxAge: 30 * 24 * 60 * 60 * 1000,
+                httpOnly: true,
+                secure: process.env.NODE_ENV === "production",
+                sameSite: "lax",
+            });
+            return res.json(userData);
         } catch (err) {
             next(err);
         }
@@ -44,6 +54,7 @@ class UserController {
             const { refreshToken } = req.cookies;
             const token = await userService.logout(refreshToken);
             res.clearCookie("refreshToken");
+            res.clearCookie("userType");
             return res.json(token);
         } catch (err) {
             next(err);
@@ -54,7 +65,7 @@ class UserController {
         try {
             const activationLink = req.params.link;
             await userService.activate(activationLink);
-            return res.redirect(process.env.CLIENT_URL);
+            return res.redirect(`${process.env.CLIENT_URL}?activated=true`);
         } catch (err) {
             next(err);
         }
