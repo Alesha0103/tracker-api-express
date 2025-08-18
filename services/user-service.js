@@ -5,6 +5,7 @@ const mailService = require("./mail-service");
 const tokenService = require("./token-service");
 const UserDto = require("../dtos/user-dto");
 const ApiError = require("../exeptions/api-errors");
+const dayjs = require("dayjs");
 
 class UserService {
     async registration(email, password) {
@@ -106,19 +107,36 @@ class UserService {
     }
 
     async editUserUser(id, updateData) {
+        if (updateData.projects && Array.isArray(updateData.projects)) {
+            updateData.projects = updateData.projects.map((name) => ({
+                name,
+                createdAt: dayjs().format("YYYY-DD-MM"),
+                updatedAt: dayjs().format("YYYY-DD-MM"),
+                trackedHours: 0,
+            }));
+        }
+
         const user = await UserModel.findByIdAndUpdate(
             id,
             { $set: updateData },
             { new: true }
         );
+
+        if (!user) return null;
+
         return {
-                id: user.id,
-                email: user.email,
-                isActivated: user.isActivated,
-                trackedHours: 0,
-                projects: user.projects,
-                isAdmin: user.isAdmin,
-            };
+            id: user.id,
+            email: user.email,
+            isActivated: user.isActivated,
+            trackedHours: 0,
+            projects: user.projects,
+            isAdmin: user.isAdmin,
+        };
+    }
+
+    async deleteUser(id) {
+        const deletedUser = await UserModel.findByIdAndDelete(id);
+        return deletedUser;
     }
 }
 
