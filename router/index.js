@@ -16,5 +16,6 @@ router.post("/logout", userController.logout);
 router.get("/activate/:link", userController.activate);
 router.get("/refresh", userController.refresh);
 router.get("/users", authMiddleware, userController.getUsers);
+router.patch("/edit-user/:id/:_name", authMiddleware, userController.editUser);
 
 module.exports = router;

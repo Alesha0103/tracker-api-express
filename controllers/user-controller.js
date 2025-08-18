@@ -92,6 +92,26 @@ class UserController {
             next(err);
         }
     }
+
+    async editUser(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { projects, isAdmin } = req.body;
+
+            const updatedUser = await userService.editUserUser(id, {
+                projects,
+                isAdmin,
+            });
+
+            if (!updatedUser) {
+                return res.status(404).json({ message: "USER_NOT_FOUND" });
+            }
+
+            return res.json(updatedUser);
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new UserController();

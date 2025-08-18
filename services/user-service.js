@@ -98,11 +98,27 @@ class UserService {
                 email: user.email,
                 isActivated: user.isActivated,
                 trackedHours: 0,
-                project: null,
+                projects: user.projects,
                 isAdmin: user.isAdmin,
             };
         });
         return updatedUsers;
+    }
+
+    async editUserUser(id, updateData) {
+        const user = await UserModel.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true }
+        );
+        return {
+                id: user.id,
+                email: user.email,
+                isActivated: user.isActivated,
+                trackedHours: 0,
+                projects: user.projects,
+                isAdmin: user.isAdmin,
+            };
     }
 }
 
