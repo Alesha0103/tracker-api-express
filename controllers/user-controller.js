@@ -92,6 +92,68 @@ class UserController {
             next(err);
         }
     }
+
+    async editUser(req, res, next) {
+        try {
+            const { id } = req.params;
+            const { projects, isAdmin } = req.body;
+
+            const updatedUser = await userService.editUserUser(id, {
+                projects,
+                isAdmin,
+            });
+
+            if (!updatedUser) {
+                return res.status(404).json({ message: "USER_NOT_FOUND" });
+            }
+
+            return res.json(updatedUser);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async deleteUser(req, res, next) {
+        try {
+            const { id } = req.params;
+
+            const deletedUser = await userService.deleteUser(id);
+
+            if (!deletedUser) {
+                return res.status(404).json({ message: "USER_NOT_FOUND" });
+            }
+
+            return res.json({ message: "USER_WAS_DELETED" });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async trackingHours(req, res, next) {
+        try {
+            const { userId, projectId, hours, date } = req.body;
+
+            const updatedUser = await userService.trackingUserHours(
+                userId,
+                projectId,
+                hours,
+                date
+            );
+
+            return res.json(updatedUser);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getProjects(req, res, next) {
+        try {
+            const projects = await userService.getProjects(req.user.id);
+            return res.json(projects);
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new UserController();

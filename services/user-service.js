@@ -4,10 +4,12 @@ const uuid = require("uuid");
 const mailService = require("./mail-service");
 const tokenService = require("./token-service");
 const UserDto = require("../dtos/user-dto");
+const ProjectDto = require("../dtos/project-dto");
 const ApiError = require("../exeptions/api-errors");
+const dayjs = require("dayjs");
 
 class UserService {
-    async registration(email, password) {
+    async registration(email, password, isAdmin) {
         const candidate = await UserModel.findOne({ email });
         if (candidate) {
             throw ApiError.BadRequest("USER_ALREADY_EXISTED");
@@ -17,6 +19,7 @@ class UserService {
 
         const user = await UserModel.create({
             email,
+            isAdmin,
             password: hashPassword,
             activationLink,
         });
@@ -97,12 +100,104 @@ class UserService {
                 id: user.id,
                 email: user.email,
                 isActivated: user.isActivated,
-                trackedHours: 0,
-                project: null,
+                totalHours: user.totalHours,
+                projects: user.projects.map((p) => new ProjectDto(p)),
                 isAdmin: user.isAdmin,
             };
         });
         return updatedUsers;
+    }
+
+    async editUserUser(id, updateData) {
+        const user = await UserModel.findById(id);
+        if (!user) return null;
+
+        if (updateData.projects && Array.isArray(updateData.projects)) {
+            const incomingNames = updateData.projects;
+
+            user.projects.forEach((project) => {
+                if (!incomingNames.includes(project.name)) {
+                    project.isDisabled = true;
+                } else {
+                    project.isDisabled = false;
+                }
+            });
+
+            incomingNames.forEach((name) => {
+                const exists = user.projects.find((p) => p.name === name);
+                if (!exists) {
+                    user.projects.push({
+                        name,
+                        createdAt: dayjs().format("YYYY-MM-DD"),
+                        updatedAt: dayjs().format("YYYY-MM-DD"),
+                        isDisabled: false,
+                        hours: 0,
+                        stats: [],
+                    });
+                }
+            });
+        }
+
+        user.totalHours = user.projects.reduce((total, project) => {
+            return total + project.stats.reduce((sum, s) => sum + s.hours, 0);
+        }, 0);
+
+        await user.save();
+
+        return {
+            id: user.id,
+            email: user.email,
+            isActivated: user.isActivated,
+            trackedHours: user.totalHours,
+            projects: user.projects.map((p) => new ProjectDto(p)),
+            isAdmin: user.isAdmin,
+        };
+    }
+
+    async deleteUser(id) {
+        const deletedUser = await UserModel.findByIdAndDelete(id);
+        return deletedUser;
+    }
+
+    async trackingUserHours(userId, projectId, hours, date) {
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw ApiError.BadRequest("USER_NOT_FOUND");
+        }
+        const project = user.projects.id(projectId);
+        if (!project) {
+            throw ApiError.BadRequest("PROJECT_NOT_FOUND");
+        }
+
+        project.hours = Number(project.hours) + Number(hours);
+        project.updatedAt = date || dayjs().format("YYYY-MM-DD");
+
+        project.stats.push({
+            date: date || dayjs().format("YYYY-MM-DD"),
+            hours: Number(hours),
+        });
+
+        user.totalHours = user.projects.reduce((sum, p) => {
+            return sum + p.stats.reduce((s, st) => s + st.hours, 0);
+        }, 0);
+
+        await user.save();
+
+        return {
+            id: user.id,
+            email: user.email,
+            totalHours: user.totalHours,
+            projects: user.projects.map((p) => new ProjectDto(p)),
+        };
+    }
+
+    async getProjects(userId) {
+        const user = await UserModel.findById(userId);
+        if (!user) throw ApiError.BadRequest("USER_NOT_FOUND");
+
+        return user.projects
+            .filter((p) => !p.isDisabled)
+            ?.map((p) => new ProjectDto(p));
     }
 }
 
