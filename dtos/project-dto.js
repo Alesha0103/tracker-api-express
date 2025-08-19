@@ -5,6 +5,7 @@ module.exports = class ProjectDto {
     updatedAt;
     hours;
     stats;
+    isDisabled;
 
     constructor(model) {
         this.id = model._id;
@@ -13,5 +14,6 @@ module.exports = class ProjectDto {
         this.updatedAt = model.updatedAt;
         this.hours = model.hours;
         this.stats = model.stats;
+        this.isDisabled = model.isDisabled;
     }
 };

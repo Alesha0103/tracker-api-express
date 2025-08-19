@@ -14,6 +14,7 @@ const ProjectSchema = new Schema({
     updatedAt: { type: String, default: Date.now },
     hours: { type: Number, default: 0 },
     stats: { type: [Stats], require: true },
+    isDisabled: { type: Boolean, required: true },
 });
 
 const UserSchema = new Schema({

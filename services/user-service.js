@@ -100,7 +100,7 @@ class UserService {
                 id: user.id,
                 email: user.email,
                 isActivated: user.isActivated,
-                totalHours: 0,
+                totalHours: user.totalHours,
                 projects: user.projects.map((p) => new ProjectDto(p)),
                 isAdmin: user.isAdmin,
             };
@@ -109,28 +109,46 @@ class UserService {
     }
 
     async editUserUser(id, updateData) {
+        const user = await UserModel.findById(id);
+        if (!user) return null;
+
         if (updateData.projects && Array.isArray(updateData.projects)) {
-            updateData.projects = updateData.projects.map((name) => ({
-                name,
-                createdAt: dayjs().format("YYYY-DD-MM"),
-                updatedAt: dayjs().format("YYYY-DD-MM"),
-                trackedHours: 0,
-            }));
+            const incomingNames = updateData.projects;
+
+            user.projects.forEach((project) => {
+                if (!incomingNames.includes(project.name)) {
+                    project.isDisabled = true;
+                } else {
+                    project.isDisabled = false;
+                }
+            });
+
+            incomingNames.forEach((name) => {
+                const exists = user.projects.find((p) => p.name === name);
+                if (!exists) {
+                    user.projects.push({
+                        name,
+                        createdAt: dayjs().format("YYYY-MM-DD"),
+                        updatedAt: dayjs().format("YYYY-MM-DD"),
+                        isDisabled: false,
+                        hours: 0,
+                        stats: [],
+                    });
+                }
+            });
         }
 
-        const user = await UserModel.findByIdAndUpdate(
-            id,
-            { $set: updateData },
-            { new: true }
-        );
+        user.totalHours = user.projects.reduce((total, project) => {
+            return total + project.stats.reduce((sum, s) => sum + s.hours, 0);
+        }, 0);
 
-        if (!user) return null;
+        await user.save();
 
         return {
             id: user.id,
             email: user.email,
             isActivated: user.isActivated,
-            trackedHours: 0,
+            trackedHours: user.totalHours,
             projects: user.projects.map((p) => new ProjectDto(p)),
             isAdmin: user.isAdmin,
         };
@@ -146,7 +164,6 @@ class UserService {
         if (!user) {
             throw ApiError.BadRequest("USER_NOT_FOUND");
         }
-        user.totalHours += Number(hours);
         const project = user.projects.id(projectId);
         if (!project) {
             throw ApiError.BadRequest("PROJECT_NOT_FOUND");
@@ -159,6 +176,10 @@ class UserService {
             date: date || dayjs().format("YYYY-MM-DD"),
             hours: Number(hours),
         });
+
+        user.totalHours = user.projects.reduce((sum, p) => {
+            return sum + p.stats.reduce((s, st) => s + st.hours, 0);
+        }, 0);
 
         await user.save();
 
@@ -174,7 +195,9 @@ class UserService {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest("USER_NOT_FOUND");
 
-        return user.projects.map((p) => new ProjectDto(p));
+        return user.projects
+            .filter((p) => !p.isDisabled)
+            ?.map((p) => new ProjectDto(p));
     }
 }
 
