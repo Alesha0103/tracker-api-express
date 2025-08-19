@@ -125,8 +125,33 @@ class UserController {
 
             return res.json({ message: "USER_WAS_DELETED" });
         } catch (error) {
-            console.log("error", error);
             next(error);
+        }
+    }
+
+    async trackingHours(req, res, next) {
+        try {
+            const { userId, projectId, hours, date } = req.body;
+
+            const updatedUser = await userService.trackingUserHours(
+                userId,
+                projectId,
+                hours,
+                date
+            );
+
+            return res.json(updatedUser);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    async getProjects(req, res, next) {
+        try {
+            const projects = await userService.getProjects(req.user.id);
+            return res.json(projects);
+        } catch (err) {
+            next(err);
         }
     }
 }

@@ -4,11 +4,12 @@ const uuid = require("uuid");
 const mailService = require("./mail-service");
 const tokenService = require("./token-service");
 const UserDto = require("../dtos/user-dto");
+const ProjectDto = require("../dtos/project-dto");
 const ApiError = require("../exeptions/api-errors");
 const dayjs = require("dayjs");
 
 class UserService {
-    async registration(email, password) {
+    async registration(email, password, isAdmin) {
         const candidate = await UserModel.findOne({ email });
         if (candidate) {
             throw ApiError.BadRequest("USER_ALREADY_EXISTED");
@@ -18,6 +19,7 @@ class UserService {
 
         const user = await UserModel.create({
             email,
+            isAdmin,
             password: hashPassword,
             activationLink,
         });
@@ -98,8 +100,8 @@ class UserService {
                 id: user.id,
                 email: user.email,
                 isActivated: user.isActivated,
-                trackedHours: 0,
-                projects: user.projects,
+                totalHours: 0,
+                projects: user.projects.map((p) => new ProjectDto(p)),
                 isAdmin: user.isAdmin,
             };
         });
@@ -129,7 +131,7 @@ class UserService {
             email: user.email,
             isActivated: user.isActivated,
             trackedHours: 0,
-            projects: user.projects,
+            projects: user.projects.map((p) => new ProjectDto(p)),
             isAdmin: user.isAdmin,
         };
     }
@@ -137,6 +139,42 @@ class UserService {
     async deleteUser(id) {
         const deletedUser = await UserModel.findByIdAndDelete(id);
         return deletedUser;
+    }
+
+    async trackingUserHours(userId, projectId, hours, date) {
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw ApiError.BadRequest("USER_NOT_FOUND");
+        }
+        user.totalHours += Number(hours);
+        const project = user.projects.id(projectId);
+        if (!project) {
+            throw ApiError.BadRequest("PROJECT_NOT_FOUND");
+        }
+
+        project.hours = Number(project.hours) + Number(hours);
+        project.updatedAt = date || dayjs().format("YYYY-MM-DD");
+
+        project.stats.push({
+            date: date || dayjs().format("YYYY-MM-DD"),
+            hours: Number(hours),
+        });
+
+        await user.save();
+
+        return {
+            id: user.id,
+            email: user.email,
+            totalHours: user.totalHours,
+            projects: user.projects.map((p) => new ProjectDto(p)),
+        };
+    }
+
+    async getProjects(userId) {
+        const user = await UserModel.findById(userId);
+        if (!user) throw ApiError.BadRequest("USER_NOT_FOUND");
+
+        return user.projects.map((p) => new ProjectDto(p));
     }
 }
 
