@@ -93,19 +93,28 @@ class UserService {
         };
     }
 
-    async getAllUsers() {
-        const users = await UserModel.find();
-        const updatedUsers = users.map((user) => {
-            return {
-                id: user.id,
-                email: user.email,
-                isActivated: user.isActivated,
-                totalHours: user.totalHours,
-                projects: user.projects.map((p) => new ProjectDto(p)),
-                isAdmin: user.isAdmin,
-            };
-        });
-        return updatedUsers;
+    async getAllUsers(page, limit = 10) {
+        const skip = (page - 1) * limit;
+
+        const [users, total] = await Promise.all([
+            UserModel.find().skip(skip).limit(limit),
+            UserModel.countDocuments(),
+        ]);
+
+        const updatedUsers = users.map((user) => ({
+            id: user.id,
+            email: user.email,
+            isActivated: user.isActivated,
+            totalHours: user.totalHours,
+            projects: user.projects.map((p) => new ProjectDto(p)),
+            isAdmin: user.isAdmin,
+        }));
+
+        return {
+            users: updatedUsers,
+            pages: Math.ceil(total / limit),
+            currentPage: page,
+        };
     }
 
     async editUserUser(id, updateData) {
