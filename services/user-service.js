@@ -243,6 +243,21 @@ class UserService {
             .filter((p) => !p.isDisabled)
             ?.map((p) => new ProjectDto(p));
     }
+
+    async getUserProject(body) {
+        const { userId, projectId } = body;
+        const user = await UserModel.findById(userId);
+        if (!user) throw ApiError.BadRequest("USER_NOT_FOUND");
+
+        const foundProject = user.projects.find(
+            (project) => project.id === projectId
+        );
+
+        foundProject.stats = foundProject.stats.sort(
+            (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+        );
+        return new ProjectDto(foundProject);
+    }
 }
 
 module.exports = new UserService();

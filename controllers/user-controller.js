@@ -149,6 +149,16 @@ class UserController {
             next(err);
         }
     }
+
+    async getUserProject(req, res, next) {
+        const body = req.body;
+        try {
+            const projects = await userService.getUserProject(body);
+            return res.json(projects);
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new UserController();
