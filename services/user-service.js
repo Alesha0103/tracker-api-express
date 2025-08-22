@@ -7,6 +7,7 @@ const UserDto = require("../dtos/user-dto");
 const ProjectDto = require("../dtos/project-dto");
 const ApiError = require("../exeptions/api-errors");
 const dayjs = require("dayjs");
+const { body } = require("express-validator");
 
 class UserService {
     async registration(email, password, isAdmin) {
@@ -93,12 +94,44 @@ class UserService {
         };
     }
 
-    async getAllUsers(page, limit = 10) {
+    async getAllUsers(body, limit = 10) {
+        const { page, email, userTypes, userActivity, projects } = body;
         const skip = (page - 1) * limit;
 
+        const filter = {};
+
+        if (email) {
+            filter.email = { $regex: email, $options: "i" };
+        }
+
+        if (userTypes && userTypes.length > 0) {
+            const conditions = [];
+            if (userTypes.includes("ADMIN")) conditions.push({ isAdmin: true });
+            if (userTypes.includes("USER")) conditions.push({ isAdmin: false });
+
+            filter.$and = filter.$and || [];
+            filter.$and.push({ $or: conditions });
+        }
+
+        if (userActivity && userActivity.length > 0) {
+            const conditions = [];
+            if (userActivity.includes("ACTIVE"))
+                conditions.push({ isActivated: true });
+            if (userActivity.includes("DISABLE"))
+                conditions.push({ isActivated: false });
+
+            filter.$and = filter.$and || [];
+            filter.$and.push({ $or: conditions });
+        }
+
+        if (projects && projects.length > 0) {
+            filter.$and = filter.$and || [];
+            filter.$and.push({ "projects.name": { $in: projects } });
+        }
+
         const [users, total] = await Promise.all([
-            UserModel.find().skip(skip).limit(limit),
-            UserModel.countDocuments(),
+            UserModel.find(filter).skip(skip).limit(limit),
+            UserModel.countDocuments(filter),
         ]);
 
         const updatedUsers = users.map((user) => ({
@@ -168,7 +201,8 @@ class UserService {
         return deletedUser;
     }
 
-    async trackingUserHours(userId, projectId, hours, date) {
+    async trackingUserHours(body) {
+        const { userId, projectId, hours, date, comment } = body;
         const user = await UserModel.findById(userId);
         if (!user) {
             throw ApiError.BadRequest("USER_NOT_FOUND");
@@ -184,6 +218,7 @@ class UserService {
         project.stats.push({
             date: date || dayjs().format("YYYY-MM-DD"),
             hours: Number(hours),
+            comment,
         });
 
         user.totalHours = user.projects.reduce((sum, p) => {

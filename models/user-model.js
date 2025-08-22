@@ -4,6 +4,7 @@ const Stats = new Schema(
     {
         date: { type: String },
         hours: { type: Number },
+        comment: { type: String },
     },
     { _id: false }
 );

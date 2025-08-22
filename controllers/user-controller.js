@@ -86,8 +86,8 @@ class UserController {
     }
     async getUsers(req, res, next) {
         try {
-            const { page } = req.body;
-            const users = await userService.getAllUsers(page);
+            const body = req.body;
+            const users = await userService.getAllUsers(body);
             return res.json(users);
         } catch (err) {
             next(err);
@@ -132,14 +132,8 @@ class UserController {
 
     async trackingHours(req, res, next) {
         try {
-            const { userId, projectId, hours, date } = req.body;
-
-            const updatedUser = await userService.trackingUserHours(
-                userId,
-                projectId,
-                hours,
-                date
-            );
+            const body = req.body;
+            const updatedUser = await userService.trackingUserHours(body);
 
             return res.json(updatedUser);
         } catch (error) {
