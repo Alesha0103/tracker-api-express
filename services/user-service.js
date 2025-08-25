@@ -174,7 +174,6 @@ class UserService {
                         updatedAt: dayjs().format("YYYY-MM-DD"),
                         isDisabled: false,
                         hours: 0,
-                        stats: [],
                     });
                 }
             });
@@ -242,6 +241,74 @@ class UserService {
         return user.projects
             .filter((p) => !p.isDisabled)
             ?.map((p) => new ProjectDto(p));
+    }
+
+    async getUserProject(body) {
+        const {
+            userId,
+            projectId,
+            page = 1,
+            limit = 10,
+            thisWeek,
+            thisMonth,
+            prevWeek,
+            prevMonth,
+            dateFrom,
+            dateTo,
+        } = body;
+        const user = await UserModel.findById(userId);
+        if (!user) throw ApiError.BadRequest("USER_NOT_FOUND");
+
+        const foundProject = user.projects.find(
+            (project) => project.id === projectId
+        );
+
+        if (!foundProject) throw ApiError.BadRequest("PROJECT_NOT_FOUND");
+
+        let stats = foundProject.stats.sort(
+            (a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()
+        );
+
+        if (thisWeek) {
+            stats = stats.filter((s) => dayjs(s.date).isSame(dayjs(), "week"));
+        }
+        if (thisMonth) {
+            stats = stats.filter((s) => dayjs(s.date).isSame(dayjs(), "month"));
+        }
+        if (prevWeek) {
+            stats = stats.filter((s) =>
+                dayjs(s.date).isSame(dayjs().subtract(1, "week"), "week")
+            );
+        }
+        if (prevMonth) {
+            stats = stats.filter((s) =>
+                dayjs(s.date).isSame(dayjs().subtract(1, "month"), "month")
+            );
+        }
+        if (dateFrom) {
+            const from = dayjs(dateFrom).format("YYYY-MM-DD");
+            stats = stats.filter((s) => s.date >= from);
+        }
+        if (dateTo) {
+            const to = dayjs(dateTo).format("YYYY-MM-DD");
+            stats = stats.filter((s) => s.date <= to);
+        }
+
+        const totalItems = stats.length;
+        const pages = Math.ceil(totalItems / limit);
+        const start = (page - 1) * limit;
+        const items = stats.slice(start, start + limit);
+
+        const project = new ProjectDto(foundProject);
+
+        return {
+            ...project,
+            stats: {
+                currentPage: page,
+                pages,
+                items,
+            },
+        };
     }
 }
 
