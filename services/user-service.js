@@ -304,7 +304,7 @@ class UserService {
         return {
             ...project,
             stats: {
-                page,
+                currentPage: page,
                 pages,
                 items,
             },
