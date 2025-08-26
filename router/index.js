@@ -15,6 +15,16 @@ router.post("/login", userController.login);
 router.post("/logout", userController.logout);
 router.get("/activate/:link", userController.activate);
 router.get("/refresh", userController.refresh);
-router.get("/users", authMiddleware, userController.getUsers);
+router.post("/users", authMiddleware, userController.getUsers);
+router.patch("/edit-user/:id/:_name", authMiddleware, userController.editUser);
+router.delete(
+    "/delete-user/:id/:_delete",
+    authMiddleware,
+    userController.deleteUser
+);
+router.patch("/tracking", authMiddleware, userController.trackingHours);
+router.get("/projects", authMiddleware, userController.getProjects);
+router.post("/project", authMiddleware, userController.getUserProject);
+router.patch("/edit", authMiddleware, userController.editStat);
 
 module.exports = router;
