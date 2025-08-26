@@ -5,9 +5,9 @@ const mailService = require("./mail-service");
 const tokenService = require("./token-service");
 const UserDto = require("../dtos/user-dto");
 const ProjectDto = require("../dtos/project-dto");
+const StatDto = require("../dtos/stat-dto");
 const ApiError = require("../exeptions/api-errors");
 const dayjs = require("dayjs");
-const { body } = require("express-validator");
 
 class UserService {
     async registration(email, password, isAdmin) {
@@ -26,7 +26,8 @@ class UserService {
         });
         await mailService.sendActivationMail(
             email,
-            `${process.env.API_URL}/api/activate/${activationLink}`
+            `${process.env.API_URL}/api/activate/${activationLink}`,
+            password
         );
 
         const userDto = new UserDto(user);
@@ -98,10 +99,14 @@ class UserService {
         const { page, email, userTypes, userActivity, projects } = body;
         const skip = (page - 1) * limit;
 
+        const escapeRegex = (str) => {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        };
+
         const filter = {};
 
         if (email) {
-            filter.email = { $regex: email, $options: "i" };
+            filter.email = { $regex: escapeRegex(email), $options: "i" };
         }
 
         if (userTypes && userTypes.length > 0) {
@@ -168,7 +173,7 @@ class UserService {
             incomingNames.forEach((name) => {
                 const exists = user.projects.find((p) => p.name === name);
                 if (!exists) {
-                    user.projects.push({
+                    user.projects.unshift({
                         name,
                         createdAt: dayjs().format("YYYY-MM-DD"),
                         updatedAt: dayjs().format("YYYY-MM-DD"),
@@ -214,7 +219,7 @@ class UserService {
         project.hours = Number(project.hours) + Number(hours);
         project.updatedAt = date || dayjs().format("YYYY-MM-DD");
 
-        project.stats.push({
+        project.stats.unshift({
             date: date || dayjs().format("YYYY-MM-DD"),
             hours: Number(hours),
             comment,
@@ -297,7 +302,8 @@ class UserService {
         const totalItems = stats.length;
         const pages = Math.ceil(totalItems / limit);
         const start = (page - 1) * limit;
-        const items = stats.slice(start, start + limit);
+        const updatedStats = stats.map((s) => new StatDto(s));
+        const items = updatedStats.slice(start, start + limit);
 
         const project = new ProjectDto(foundProject);
 
@@ -309,6 +315,29 @@ class UserService {
                 items,
             },
         };
+    }
+
+    async editStat(body) {
+        const { userId, projectId, statId, hours, date, comment } = body;
+        const user = await UserModel.findById(userId);
+        if (!user) {
+            throw ApiError.BadRequest("USER_NOT_FOUND");
+        }
+        const project = user.projects.id(projectId);
+        if (!project) {
+            throw ApiError.BadRequest("PROJECT_NOT_FOUND");
+        }
+        const stat = project.stats.id(statId);
+        if (!stat) {
+            throw ApiError.BadRequest("STAT_NOT_FOUND");
+        }
+
+        stat.hours = hours;
+        stat.date = date;
+        stat.comment = comment;
+
+        await user.save();
+        return new ProjectDto(project);
     }
 }
 

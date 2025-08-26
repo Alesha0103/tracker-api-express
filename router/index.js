@@ -25,5 +25,6 @@ router.delete(
 router.patch("/tracking", authMiddleware, userController.trackingHours);
 router.get("/projects", authMiddleware, userController.getProjects);
 router.post("/project", authMiddleware, userController.getUserProject);
+router.patch("/edit", authMiddleware, userController.editStat);
 
 module.exports = router;

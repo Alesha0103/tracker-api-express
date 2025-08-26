@@ -159,6 +159,17 @@ class UserController {
             next(err);
         }
     }
+
+    async editStat(req, res, next) {
+        try {
+            const body = req.body;
+            const updatedUser = await userService.editStat(body);
+
+            return res.json(updatedUser);
+        } catch (error) {
+            next(error);
+        }
+    }
 }
 
 module.exports = new UserController();

@@ -1,13 +1,10 @@
 const { Schema, model } = require("mongoose");
 
-const StatSchema = new Schema(
-    {
-        date: { type: String },
-        hours: { type: Number },
-        comment: { type: String },
-    },
-    { _id: false }
-);
+const StatSchema = new Schema({
+    date: { type: String },
+    hours: { type: Number },
+    comment: { type: String },
+});
 
 const ProjectSchema = new Schema({
     name: { type: String, required: true },
