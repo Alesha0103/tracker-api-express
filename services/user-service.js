@@ -98,10 +98,14 @@ class UserService {
         const { page, email, userTypes, userActivity, projects } = body;
         const skip = (page - 1) * limit;
 
+        const escapeRegex = (str) => {
+            return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        };
+
         const filter = {};
 
         if (email) {
-            filter.email = { $regex: email, $options: "i" };
+            filter.email = { $regex: escapeRegex(email), $options: "i" };
         }
 
         if (userTypes && userTypes.length > 0) {
