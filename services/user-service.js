@@ -211,16 +211,32 @@ class UserService {
         if (!user) {
             throw ApiError.BadRequest("USER_NOT_FOUND");
         }
+
         const project = user.projects.id(projectId);
         if (!project) {
             throw ApiError.BadRequest("PROJECT_NOT_FOUND");
         }
 
+        const targetDate = date || dayjs().format("YYYY-MM-DD");
+
+        const totalForDay = user.projects.reduce((sum, p) => {
+            return (
+                sum +
+                p.stats
+                    .filter((st) => st.date === targetDate)
+                    .reduce((s, st) => s + st.hours, 0)
+            );
+        }, 0);
+
+        if (totalForDay + Number(hours) > 24) {
+            throw ApiError.BadRequest("DAY_LIMIT");
+        }
+
         project.hours = Number(project.hours) + Number(hours);
-        project.updatedAt = date || dayjs().format("YYYY-MM-DD");
+        project.updatedAt = targetDate;
 
         project.stats.unshift({
-            date: date || dayjs().format("YYYY-MM-DD"),
+            date: targetDate,
             hours: Number(hours),
             comment,
         });
