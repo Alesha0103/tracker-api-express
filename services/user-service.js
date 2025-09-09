@@ -188,6 +188,8 @@ class UserService {
             return total + project.stats.reduce((sum, s) => sum + s.hours, 0);
         }, 0);
 
+        user.isAdmin = updateData.isAdmin;
+
         await user.save();
 
         return {
